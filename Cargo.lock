@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "log-generator"
+name = "log-collector"
 version = "0.1.0"
