@@ -25,15 +25,16 @@ async fn main() {
 
     let path = get_directory_of_convoy();
 
-    println!("Path: {}", path);
-
+    println!("Getting log files... (this may take a while)");
     let log_files = get_log_files_contents(&path);
 
+    println!("Getting docker logs... (this may take a while)");
     let docker_logs = get_docker_logs(&path);
 
+    println!("Getting environment file...");
+    println!("Don't worry. We are only taking the values of APP_ENV, APP_DEBUG, APP_URL, DB_CONNECTION, DB_HOST, DB_PORT, CACHE_DRIVER, FILESYSTEM_DISK, QUEUE_CONNECTION, SESSION_DRIVER, SESSION_LIFETIME, REDIS_HOST, and REDIS_PORT.");
     let environment_file = get_environment_file(&path);
 
-    println!("{}", environment_file.APP_URL);
 }
 
 fn get_consent() {
