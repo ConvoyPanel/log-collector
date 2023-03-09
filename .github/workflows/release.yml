@@ -29,7 +29,7 @@ jobs:
           echo ::set-output name=version_name::`sed -nr "s/^## (${REF:10} .*)$/\1/p" CHANGELOG.md`
       - name: Create checksum and add to changelog
         run: |
-          SUM=`cd target/release && sha256sum log_collector`
+          SUM=`cd target/release && sha256sum log-collector`
           echo -e "\n#### SHA256 Checksum\n\`\`\`\n$SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
           echo -e "$SUM" > checksums.txt
 
