@@ -1,0 +1,74 @@
+name: Create Release
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+      - name: Build
+        run: |
+          cargo build --release
+      - name: Compress binary and make it executable
+        run: |
+          chmod +x target/release/log-collector
+
+      - name: Extract changelog
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          sed -n "/^## ${REF:10}/,/^## /{/^## /b;p}" CHANGELOG.md > ./RELEASE_CHANGELOG
+          echo ::set-output name=version_name::`sed -nr "s/^## (${REF:10} .*)$/\1/p" CHANGELOG.md`
+      - name: Create checksum and add to changelog
+        run: |
+          SUM=`cd target/release && sha256sum log_collector`
+          echo -e "\n#### SHA256 Checksum\n\`\`\`\n$SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
+          echo -e "$SUM" > checksums.txt
+
+      - name: Create release branch
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          BRANCH=release/${REF:10}
+          git config --local user.email "ci@convoypanel.com"
+          git config --local user.name "Convoy CI"
+          git checkout -b $BRANCH
+          git push -u origin $BRANCH
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ steps.extract_changelog.outputs.version_name }}
+          body_path: ./RELEASE_CHANGELOG
+          draft: true
+          prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+      - name: Upload Binary
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: target/release/log-collector
+          asset_name: log_collector
+          asset_content_type: application/octet-stream
+      - name: Upload checksum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./checksums.txt
+          asset_name: checksums.txt
+          asset_content_type: text/plain

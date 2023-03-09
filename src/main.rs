@@ -100,7 +100,7 @@ async fn main() {
     ];
 
     let compiled_paste_url = upload_to_hastebin(&client, compiled_paste.join("\n").as_str()).await.unwrap();
-    println!("Log files uploaded successfully! Link: {}", compiled_paste_url);
+    println!("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nLog files uploaded successfully! Link: {}", compiled_paste_url);
 }
 
 async fn upload_to_hastebin(client: &Client, content: &str) -> Result<String, Box<dyn Error>> {
