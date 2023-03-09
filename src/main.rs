@@ -1,8 +1,13 @@
+use chrono::prelude::*;
 use dialoguer::{Confirm, Input};
+use reqwest::Client;
+use std::error::Error;
 use std::fs::File;
+use std::fs;
 use std::io::{prelude::*, BufReader};
 use std::path::Path;
 use std::process::Command;
+use regex::Regex;
 
 #[tokio::main]
 async fn main() {
@@ -25,16 +30,93 @@ async fn main() {
 
     let path = get_directory_of_convoy();
 
-    println!("Getting log files... (this may take a while)");
+    let convoy_version = get_convoy_version(&path);
+
+    println!("Getting log files...");
     let log_files = get_log_files_contents(&path);
 
-    println!("Getting docker logs... (this may take a while)");
+    println!("Getting docker logs...");
     let docker_logs = get_docker_logs(&path);
 
     println!("Getting environment file...");
     println!("Don't worry. We are only taking the values of APP_ENV, APP_DEBUG, APP_URL, DB_CONNECTION, DB_HOST, DB_PORT, CACHE_DRIVER, FILESYSTEM_DISK, QUEUE_CONNECTION, SESSION_DRIVER, SESSION_LIFETIME, REDIS_HOST, and REDIS_PORT.");
     let environment_file = get_environment_file(&path);
 
+    println!("Uploading logs to https://paste.frocdn.com... (this may take a while)");
+    let client = Client::new();
+    let laravel_log_url = upload_to_hastebin(&client, &log_files.laravel)
+        .await
+        .unwrap();
+    let horizon_log_url = upload_to_hastebin(&client, &log_files.horizon)
+        .await
+        .unwrap();
+    let scheduler_log_url = upload_to_hastebin(&client, &log_files.scheduler)
+        .await
+        .unwrap();
+
+    // Upload Docker logs
+    let ps_log_url = upload_to_hastebin(&client, &docker_logs.ps).await.unwrap();
+    let database_log_url = upload_to_hastebin(&client, &docker_logs.database)
+        .await
+        .unwrap();
+    let caddy_log_url = upload_to_hastebin(&client, &docker_logs.caddy)
+        .await
+        .unwrap();
+    let php_log_url = upload_to_hastebin(&client, &docker_logs.php).await.unwrap();
+    let redis_log_url = upload_to_hastebin(&client, &docker_logs.redis)
+        .await
+        .unwrap();
+    let workers_log_url = upload_to_hastebin(&client, &docker_logs.workers)
+        .await
+        .unwrap();
+
+    // Upload environment file
+    let environment_file_url = upload_to_hastebin(&client, &format!("{:?}", environment_file))
+        .await
+        .unwrap();
+
+    // Print output
+
+    let now = Local::now();
+    let formatted_date = now.format("%Y-%m-%d %H:%M:%S %:z").to_string();
+
+    let compiled_paste = [
+        format!("Convoy Log Collector v{}", env!("CARGO_PKG_VERSION")),
+        format!("Convoy Version: {}", convoy_version),
+        format!("{APP_URL}", APP_URL = environment_file.APP_URL),
+        format!("{:?}", formatted_date),
+        format!("\nLaravel Log Files"),
+        format!("laravel.log: {}", laravel_log_url),
+        format!("horizon.log: {}", horizon_log_url),
+        format!("scheduler.log: {}", scheduler_log_url),
+        format!("\nDocker Logs"),
+        format!("ps: {}", ps_log_url),
+        format!("database: {}", database_log_url),
+        format!("caddy: {}", caddy_log_url),
+        format!("php: {}", php_log_url),
+        format!("redis: {}", redis_log_url),
+        format!("workers: {}", workers_log_url),
+        format!("\nEnvironment file: {}", environment_file_url),
+    ];
+
+    let compiled_paste_url = upload_to_hastebin(&client, compiled_paste.join("\n").as_str()).await.unwrap();
+    println!("Log files uploaded successfully! Link: {}", compiled_paste_url);
+}
+
+async fn upload_to_hastebin(client: &Client, content: &str) -> Result<String, Box<dyn Error>> {
+    let resp = client
+        .post("https://paste.frocdn.com/documents")
+        .header("Content-Type", "application/json")
+        .body(content.to_string())
+        .send()
+        .await?
+        .text()
+        .await?;
+
+    let response_json: serde_json::Value = serde_json::from_str(&resp)?;
+
+    let key = response_json["key"].as_str().unwrap();
+    Ok(format!("https://paste.frocdn.com/{}", key))
 }
 
 fn get_consent() {
@@ -191,6 +273,7 @@ fn get_docker_logs(root_directory: &String) -> DockerLogs {
     docker_logs
 }
 
+#[derive(Debug)]
 #[allow(non_snake_case)]
 struct EnvironmentFile {
     APP_ENV: String,
@@ -207,7 +290,6 @@ struct EnvironmentFile {
     REDIS_HOST: String,
     REDIS_PORT: String,
 }
-
 
 fn get_environment_file(root_directory: &String) -> EnvironmentFile {
     let env_file_path = format!("{}/.env", root_directory);
@@ -233,7 +315,6 @@ fn get_environment_file(root_directory: &String) -> EnvironmentFile {
 
     while let Some(line) = env_file_lines.next() {
         if let Ok(line_contents) = line {
-
             let mut line_parts = line_contents.splitn(2, "=");
             let key = line_parts.next().unwrap().trim();
             let value = line_parts.next().unwrap_or("").trim();
@@ -258,4 +339,13 @@ fn get_environment_file(root_directory: &String) -> EnvironmentFile {
     }
 
     env_file
+}
+
+fn get_convoy_version(root_directory: &String) -> String {
+    let app_config_path = format!("{}/config/app.php", root_directory);
+    let app_config_contents = fs::read_to_string(app_config_path).unwrap();
+
+    let re = Regex::new(r"'version'\s*=>\s*'(.+?)'").unwrap();
+    let captures = re.captures(&app_config_contents).unwrap();
+    captures[1].to_string()
 }
