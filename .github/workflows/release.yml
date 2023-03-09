@@ -25,7 +25,7 @@ jobs:
           git config --local user.email "ci@convoypanel.com"
           git config --local user.name "Convoy CI"
           git checkout -b $BRANCH
-          sed -i 's/version = "canary"/version = "${REF:11}"/' Cargo.toml
+          sed -i "s/version = \"canary\"/version = \"${REF:11}\"/" Cargo.toml
           git add Cargo.toml
           git commit -m "bump version for release"
           git push -u origin $BRANCH
