@@ -1,6 +1,6 @@
 [package]
 name = "log-collector"
-version = "canary"
+version = "0.0.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -13,3 +13,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 regex = "1.7.1"
+
+[[bin]]
+name = "log_collector"
+path = "src/main.rs"

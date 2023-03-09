@@ -25,7 +25,7 @@ jobs:
           git config --local user.email "ci@convoypanel.com"
           git config --local user.name "Convoy CI"
           git checkout -b $BRANCH
-          sed -i "s/version = \"canary\"/version = \"${REF:11}\"/" Cargo.toml
+          sed -i "s/version = \"0.0.0\"/version = \"${REF:11}\"/" Cargo.toml
           git add Cargo.toml
           git commit -m "bump version for release"
           git push -u origin $BRANCH
@@ -46,7 +46,7 @@ jobs:
 
       - name: Compress binary and make it executable
         run: |
-          chmod +x target/x86_64-unknown-linux-gnu/release/log-collector
+          chmod +x target/x86_64-unknown-linux-gnu/release/log_collector
 
 
 
@@ -58,7 +58,7 @@ jobs:
           echo ::set-output name=version_name::`sed -nr "s/^## (${REF:10} .*)$/\1/p" CHANGELOG.md`
       - name: Create checksum and add to changelog
         run: |
-          SUM=`cd target/x86_64-unknown-linux-gnu/release && sha256sum log-collector`
+          SUM=`cd target/x86_64-unknown-linux-gnu/release && sha256sum log_collector`
           echo -e "\n#### SHA256 Checksum\n\`\`\`\n$SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
           echo -e "$SUM" > checksums.txt
 
@@ -84,7 +84,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/x86_64-unknown-linux-gnu/release/log-collector
+          asset_path: target/x86_64-unknown-linux-gnu/release/log_collector
           asset_name: log_collector
           asset_content_type: application/octet-stream
       - name: Upload checksum
