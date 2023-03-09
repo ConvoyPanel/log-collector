@@ -14,15 +14,41 @@ jobs:
         with:
           profile: minimal
           toolchain: stable
+
+
+
+      - name: Create release branch and bump version
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          BRANCH=release/${REF:10}
+          git config --local user.email "ci@convoypanel.com"
+          git config --local user.name "Convoy CI"
+          git checkout -b $BRANCH
+          sed -i 's/version = "canary"/version = "${REF:11}"/' Cargo.toml
+          git add Cargo.toml
+          git commit -m "bump version for release"
+          git push -u origin $BRANCH
+
+
+
       - name: Install Cross-rs
         run: |
           cargo install cross --git https://github.com/cross-rs/cross
+
+
+
       - name: Build
         run: |
           cross build --release
+
+
+
       - name: Compress binary and make it executable
         run: |
           chmod +x target/x86_64-unknown-linux-gnu/release/log-collector
+
+
 
       - name: Extract changelog
         env:
@@ -36,15 +62,7 @@ jobs:
           echo -e "\n#### SHA256 Checksum\n\`\`\`\n$SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
           echo -e "$SUM" > checksums.txt
 
-      - name: Create release branch
-        env:
-          REF: ${{ github.ref }}
-        run: |
-          BRANCH=release/${REF:10}
-          git config --local user.email "ci@convoypanel.com"
-          git config --local user.name "Convoy CI"
-          git checkout -b $BRANCH
-          git push -u origin $BRANCH
+
 
       - name: Create Release
         id: create_release
@@ -57,6 +75,9 @@ jobs:
           body_path: ./RELEASE_CHANGELOG
           draft: true
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+
+
+
       - name: Upload Binary
         uses: actions/upload-release-asset@v1
         env:
