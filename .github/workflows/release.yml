@@ -19,10 +19,10 @@ jobs:
           cargo install cross --git https://github.com/cross-rs/cross
       - name: Build
         run: |
-          cargo build --release
+          cross build --release
       - name: Compress binary and make it executable
         run: |
-          chmod +x target/release/log-collector
+          chmod +x target/x86_64-unknown-linux-gnu/release/log-collector
 
       - name: Extract changelog
         env:
@@ -32,7 +32,7 @@ jobs:
           echo ::set-output name=version_name::`sed -nr "s/^## (${REF:10} .*)$/\1/p" CHANGELOG.md`
       - name: Create checksum and add to changelog
         run: |
-          SUM=`cd target/release && sha256sum log-collector`
+          SUM=`cd target/x86_64-unknown-linux-gnu/release && sha256sum log-collector`
           echo -e "\n#### SHA256 Checksum\n\`\`\`\n$SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
           echo -e "$SUM" > checksums.txt
 
@@ -63,7 +63,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/release/log-collector
+          asset_path: target/x86_64-unknown-linux-gnu/release/log-collector
           asset_name: log_collector
           asset_content_type: application/octet-stream
       - name: Upload checksum
