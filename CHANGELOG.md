@@ -2,6 +2,14 @@
 
 This project follows [Semantic Versioning](http://semver.org) guidelines.
 
+## v2.0.0
+
+### Changes
+
+- Decreased log size count from 20 MiB to 5 MiB
+- Added log collection of system information
+- Lots of fucking refactors
+
 ## v1.1.0
 
 ### Added
