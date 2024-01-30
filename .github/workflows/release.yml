@@ -34,71 +34,31 @@ jobs:
           cross build --release --target aarch64-unknown-linux-gnu
 
       - name: Extract changelog
-        id: extract_changelog
         env:
           REF: ${{ github.ref }}
         run: |
           sed -n "/^## ${REF:10}/,/^## /{/^## /b;p}" CHANGELOG.md > ./RELEASE_CHANGELOG
-          echo "version_name=${REF:10}" >> $GITHUB_OUTPUT
 
       - name: Create checksum and add to changelog
         run: |
-          X86_SUM=$(cd target/x86_64-unknown-linux-gnu/release && sha256sum log_collector)
-          ARM_SUM=$(cd target/aarch64-unknown-linux-gnu/release && sha256sum log_collector)
+          mv target/x86_64-unknown-linux-gnu/release/log_collector log_collector_x86
+          mv target/aarch64-unknown-linux-gnu/release/log_collector log_collector_arm
+          X86_SUM=$(sha256sum log_collector_x86)
+          ARM_SUM=$(sha256sum log_collector_arm)
           echo -e "\n#### x86 Binary SHA256 Checksum\n\`\`\`\n$X86_SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
           echo -e "\n#### ARM Binary SHA256 Checksum\n\`\`\`\n$ARM_SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
           echo -e "$X86_SUM" > x86_checksum.txt
           echo -e "$ARM_SUM" > arm_checksum.txt
 
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref }}
-          release_name: ${{ steps.extract_changelog.outputs.version_name }}
           body_path: ./RELEASE_CHANGELOG
           draft: true
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
-
-      - name: Upload x86 Binary
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/x86_64-unknown-linux-gnu/release/log_collector
-          asset_name: log_collector_x86
-          asset_content_type: application/octet-stream
-
-      - name: Upload x86 Checksum
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./x86_checksum.txt
-          asset_name: x86_checksum.txt
-          asset_content_type: text/plain
-
-      - name: Upload ARM Binary
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/aarch64-unknown-linux-gnu/release/log_collector
-          asset_name: log_collector_arm
-          asset_content_type: application/octet-stream
-
-      - name: Upload ARM Checksum
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./arm_checksum.txt
-          asset_name: arm_checksum.txt
-          asset_content_type: text/plain
-
+          files: |
+            log_collector_x86
+            log_collector_arm
+            x86_checksum.txt
+            arm_checksum.txt
