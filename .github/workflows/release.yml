@@ -45,8 +45,8 @@ jobs:
         run: |
           X86_SUM=`cd target/x86_64-unknown-linux-gnu/release && sha256sum log_collector`
           ARM_SUM=`cd target/aarch64-unknown-linux-gnu/release && sha256sum log_collector`
-          echo -e "\n#### x86 Binary SHA256 Checksum\n\`\`\`\X86_SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
-          echo -e "\n#### ARM Binary SHA256 Checksum\n\`\`\`\ARM_SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
+          echo -e "\n#### x86 Binary SHA256 Checksum\n\`\`\`\$X86_SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
+          echo -e "\n#### ARM Binary SHA256 Checksum\n\`\`\`\$ARM_SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
           echo -e "$X86_SUM" > x86_checksum.txt
           echo -e "$ARM_SUM" > arm_checksum.txt
 
