@@ -15,54 +15,40 @@ jobs:
           profile: minimal
           toolchain: stable
 
-
-
       - name: Create release branch and bump version
         env:
           REF: ${{ github.ref }}
         run: |
-          BRANCH=release/${REF:10}
-          git config --local user.email "ci@convoypanel.com"
-          git config --local user.name "Convoy CI"
-          git checkout -b $BRANCH
           sed -i "s/version = \"0.0.0\"/version = \"${REF:11}\"/" Cargo.toml
-          git add Cargo.toml
-          git commit -m "bump version for release"
-          git push -u origin $BRANCH
-
-
 
       - name: Install Cross-rs
         run: |
           cargo install cross --git https://github.com/cross-rs/cross
 
-
-
-      - name: Build
+      - name: Build x86 Binary
         run: |
-          cross build --release
+          cross build --release --target x86_64-unknown-linux-gnu
 
-
-
-      - name: Compress binary and make it executable
+      - name: Build ARM Binary
         run: |
-          chmod +x target/x86_64-unknown-linux-gnu/release/log_collector
-
-
+          cross build --release --target aarch64-unknown-linux-gnu
 
       - name: Extract changelog
+        id: extract_changelog
         env:
           REF: ${{ github.ref }}
         run: |
           sed -n "/^## ${REF:10}/,/^## /{/^## /b;p}" CHANGELOG.md > ./RELEASE_CHANGELOG
-          echo ::set-output name=version_name::`sed -nr "s/^## (${REF:10} .*)$/\1/p" CHANGELOG.md`
+          echo "version_name=${REF:10}" >> $GITHUB_OUTPUT
+
       - name: Create checksum and add to changelog
         run: |
-          SUM=`cd target/x86_64-unknown-linux-gnu/release && sha256sum log_collector`
-          echo -e "\n#### SHA256 Checksum\n\`\`\`\n$SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
-          echo -e "$SUM" > checksums.txt
-
-
+          X86_SUM=`cd target/x86_64-unknown-linux-gnu/release && sha256sum log_collector`
+          ARM_SUM=`cd target/aarch64-unknown-linux-gnu/release && sha256sum log_collector`
+          echo -e "\n#### x86 Binary SHA256 Checksum\n\`\`\`\X86_SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
+          echo -e "\n#### ARM Binary SHA256 Checksum\n\`\`\`\ARM_SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
+          echo -e "$X86_SUM" > x86_checksum.txt
+          echo -e "$ARM_SUM" > arm_checksum.txt
 
       - name: Create Release
         id: create_release
@@ -76,23 +62,43 @@ jobs:
           draft: true
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
 
-
-
-      - name: Upload Binary
+      - name: Upload x86 Binary
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: target/x86_64-unknown-linux-gnu/release/log_collector
-          asset_name: log_collector
+          asset_name: log_collector_x86
           asset_content_type: application/octet-stream
-      - name: Upload checksum
+
+      - name: Upload x86 Checksum
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./checksums.txt
-          asset_name: checksums.txt
+          asset_path: ./x86_checksum.txt
+          asset_name: x86_checksum.txt
           asset_content_type: text/plain
+
+      - name: Upload ARM Binary
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: target/aarch64-unknown-linux-gnu/release/log_collector
+          asset_name: log_collector_arm
+          asset_content_type: application/octet-stream
+
+      - name: Upload ARM Checksum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./arm_checksum.txt
+          asset_name: arm_checksum.txt
+          asset_content_type: text/plain
+
