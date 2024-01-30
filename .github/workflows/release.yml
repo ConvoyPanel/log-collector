@@ -2,7 +2,7 @@ name: Create Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'
 
 jobs:
   release:
@@ -15,7 +15,7 @@ jobs:
           profile: minimal
           toolchain: stable
 
-      - name: Create release branch and bump version
+      - name: Update Embedded Version String
         env:
           REF: ${{ github.ref }}
         run: |
@@ -43,10 +43,10 @@ jobs:
 
       - name: Create checksum and add to changelog
         run: |
-          X86_SUM=`cd target/x86_64-unknown-linux-gnu/release && sha256sum log_collector`
-          ARM_SUM=`cd target/aarch64-unknown-linux-gnu/release && sha256sum log_collector`
-          echo -e "\n#### x86 Binary SHA256 Checksum\n\`\`\`\$X86_SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
-          echo -e "\n#### ARM Binary SHA256 Checksum\n\`\`\`\$ARM_SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
+          X86_SUM=$(cd target/x86_64-unknown-linux-gnu/release && sha256sum log_collector)
+          ARM_SUM=$(cd target/aarch64-unknown-linux-gnu/release && sha256sum log_collector)
+          echo -e "\n#### x86 Binary SHA256 Checksum\n\`\`\`\n$X86_SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
+          echo -e "\n#### ARM Binary SHA256 Checksum\n\`\`\`\n$ARM_SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
           echo -e "$X86_SUM" > x86_checksum.txt
           echo -e "$ARM_SUM" > arm_checksum.txt
 
