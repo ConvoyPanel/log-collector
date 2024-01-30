@@ -35,13 +35,13 @@ jobs:
         run: |
           cross build --release --target aarch64-unknown-linux-gnu
 
-      - name: Extract changelog
+      - name: Extract Changelog
         env:
           REF: ${{ github.ref }}
         run: |
           sed -n "/^## ${REF:10}/,/^## /{/^## /b;p}" CHANGELOG.md > ./RELEASE_CHANGELOG
 
-      - name: Create checksum and add to changelog
+      - name: Create Checksum and Add to Changelog
         run: |
           mv target/x86_64-unknown-linux-gnu/release/log_collector log_collector_x86
           mv target/aarch64-unknown-linux-gnu/release/log_collector log_collector_arm
