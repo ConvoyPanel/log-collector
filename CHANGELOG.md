@@ -2,6 +2,12 @@
 
 This project follows [Semantic Versioning](http://semver.org) guidelines.
 
+## v2.0.1
+
+### Changes
+
+- Test
+
 ## v2.0.0
 
 ### Changes
