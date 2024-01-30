@@ -16,10 +16,12 @@ jobs:
           toolchain: stable
 
       - name: Update Embedded Version String
+        id: extract_changelog
         env:
           REF: ${{ github.ref }}
         run: |
           sed -i "s/version = \"0.0.0\"/version = \"${REF:11}\"/" Cargo.toml
+          echo "version_name=${REF:10}" >> $GITHUB_OUTPUT
 
       - name: Install Cross-rs
         run: |
@@ -45,15 +47,14 @@ jobs:
           mv target/aarch64-unknown-linux-gnu/release/log_collector log_collector_arm
           X86_SUM=$(sha256sum log_collector_x86)
           ARM_SUM=$(sha256sum log_collector_arm)
-          echo -e "\n#### x86 Binary SHA256 Checksum\n\`\`\`\n$X86_SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
-          echo -e "\n#### ARM Binary SHA256 Checksum\n\`\`\`\n$ARM_SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
+          echo -e "\n####SHA256 Checksum\n\`\`\`\n$X86_SUM\n$ARM_SUM\n\`\`\`\n" >> ./RELEASE_CHANGELOG
           echo -e "$X86_SUM" > x86_checksum.txt
           echo -e "$ARM_SUM" > arm_checksum.txt
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
+          name: ${{ steps.extract_changelog.outputs.version_name }}
           body_path: ./RELEASE_CHANGELOG
           draft: true
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
