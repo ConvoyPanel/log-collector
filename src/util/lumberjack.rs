@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::ffi::OsStr;
 use std::fs::File;
 use std::path::Path;
@@ -6,9 +7,10 @@ use std::process::Command;
 
 const CHUNK_SIZE: u64 = 5 * 1024 * 1024; // 5 MiB
 
-pub fn axe_logfiles(file_path: &Path) -> String {
-    let mut file = File::open(file_path).unwrap();
-    let file_size = file.metadata().unwrap().len();
+pub fn axe_logfiles(file_path: &Path) -> Result<String, Box<dyn Error>> {
+    let mut file = File::open(file_path)?;
+
+    let file_size = file.metadata()?.len();
 
     let start_pos = if file_size > CHUNK_SIZE {
         file_size - CHUNK_SIZE
@@ -28,11 +30,8 @@ pub fn axe_logfiles(file_path: &Path) -> String {
     reader.read_to_end(&mut buffer).unwrap();
 
     let mut content = String::from_utf8(buffer).unwrap_or_else(|_| String::new());
-    //let mut lines = content.split("\n").collect::<Vec<_>>();
-    //lines.reverse();
-    //content = lines.join("\n");
 
-    content
+    Ok(content)
 }
 
 pub fn axe_dockerlogs(convoy_dir: &Path, container_name: &str) -> String {
