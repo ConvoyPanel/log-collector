@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 use regex::Regex;
 use sysinfo::{
-    Components, Disks, Networks, System,
+    System,
 };
 
 pub fn get_convoy_version(convoy_dir: &Path) -> String {

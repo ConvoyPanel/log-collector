@@ -29,7 +29,7 @@ pub fn axe_logfiles(file_path: &Path) -> Result<String, Box<dyn Error>> {
     let mut buffer = Vec::new();
     reader.read_to_end(&mut buffer).unwrap();
 
-    let mut content = String::from_utf8(buffer).unwrap_or_else(|_| String::new());
+    let content = String::from_utf8(buffer).unwrap_or_else(|_| String::new());
 
     Ok(content)
 }
