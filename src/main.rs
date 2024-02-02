@@ -5,6 +5,8 @@ mod uploader;
 
 #[tokio::main]
 async fn main() {
+    util::branding::show_msg();
+
     let convoy_dir = util::questions::get_info();
 
     let logs = logger::get_logs(&convoy_dir);

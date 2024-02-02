@@ -6,6 +6,8 @@ This project follows [Semantic Versioning](http://semver.org) guidelines.
 
 ### Changes
 
+- Added brand message to entrypoint.
+- Removed dead code.
 - Fixed panics when a log file doesn't exist.
 
 ## v2.0.0
